@@ -88,7 +88,7 @@ def combine_fidelity(mats: list[np.ndarray], weights: np.ndarray) -> np.ndarray:
     w_masked = np.where(mask, w[None, None, :], 0.0)
     num = np.nansum(stacked * w[None, None, :], axis=-1)
     den = np.sum(w_masked, axis=-1)
-    return np.where(den > 0, num / den, np.nan)
+    return np.divide(num, den, out=np.full_like(num, np.nan), where=den > 0)
 
 
 # --- Candidate degradation models ---
