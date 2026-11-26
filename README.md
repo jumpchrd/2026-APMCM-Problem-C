@@ -14,7 +14,9 @@
 ├── src/
 │   ├── config.py          # 路径、随机种子与绘图规范配置
 │   ├── q1_acoustics_classification.py  # 问题一：声学特征描述、非参数检验与分类器
-│   └── q2_signal_degradation.py        # 问题二：保真度融合、衰减拟合与有效通信距离
+│   ├── q2_signal_degradation.py        # 问题二：保真度融合、衰减拟合与有效通信距离
+│   ├── q3_playback_responses.py        # 问题三：回放行为组合、多项回归与删失潜伏期模型
+│   └── q4_effectiveness_conservation.py # 问题四：通信效能指数、预期响应数与噪声情景仿真
 ├── .gitignore
 ├── requirements.txt
 └── README.md
@@ -31,6 +33,8 @@
 pip install -r requirements.txt
 python src/q1_acoustics_classification.py
 python src/q2_signal_degradation.py
+python src/q3_playback_responses.py
+python src/q4_effectiveness_conservation.py
 ```
 
 如需指定数据目录，可设置环境变量 `APMCM_C_DATA_DIR`。

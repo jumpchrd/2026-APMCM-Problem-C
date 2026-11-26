@@ -1,0 +1,10 @@
+CallType,IntensityMeasure,N_active,Mean_active,Median_active
+flat,VocalNcalls,26,3.3076923076923075,2.5
+flat,HeadsUpDuration,21,22.0,17.0
+flat,ApproachDuration,4,24.5,27.5
+mod,VocalNcalls,16,5.1875,4.0
+mod,HeadsUpDuration,15,30.133333333333333,26.0
+mod,ApproachDuration,8,36.125,33.5
+tv,VocalNcalls,36,3.5277777777777777,3.0
+tv,HeadsUpDuration,19,27.526315789473685,27.0
+tv,ApproachDuration,11,44.54545454545455,44.0
