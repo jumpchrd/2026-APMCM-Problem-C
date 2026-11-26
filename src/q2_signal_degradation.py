@@ -57,7 +57,7 @@ def fit_and_bootstrap(
     fidelity_mat: np.ndarray, n_boot: int = 500
 ) -> tuple[np.ndarray, dict[str, tuple[float, float, float]]]:
     """Fit exponential decay to mean fidelity and estimate Bootstrap 95% CIs for d_eff."""
-    mean_y = fidelity_mat.mean(axis=0)
+    mean_y = np.nanmean(fidelity_mat, axis=0)
     popt, _ = curve_fit(
         exp_decay, DISTANCES, mean_y, p0=[0.6, 0.01, 0.2], bounds=([0, 0, 0], [2, 1, 1]), maxfev=5000
     )
@@ -67,7 +67,7 @@ def fit_and_bootstrap(
     n_rows = fidelity_mat.shape[0]
     for _ in range(n_boot):
         idx = rng.integers(0, n_rows, size=n_rows)
-        y_b = fidelity_mat[idx].mean(axis=0)
+        y_b = np.nanmean(fidelity_mat[idx], axis=0)
         try:
             p_b, _ = curve_fit(
                 exp_decay, DISTANCES, y_b, p0=popt, bounds=([0, 0, 0], [2, 1, 1]), maxfev=3000
@@ -110,7 +110,7 @@ def main() -> None:
                     "c": popt[2],
                 }
             )
-        plt.scatter(DISTANCES, mat.mean(axis=0), label=f"{ct} (mean)")
+        plt.scatter(DISTANCES, np.nanmean(mat, axis=0), label=f"{ct} (mean)")
         plt.plot(d_grid, exp_decay(d_grid, *popt), label=f"{ct} (fit)")
 
     for k, tau in THRESHOLDS.items():
