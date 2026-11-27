@@ -1,2 +1,2 @@
-Feature,N_mod,N_tv,MWU_U,MWU_p,KS_D,KS_p
-PulseRate (mod vs tv),34,20,279.0,0.2784965925308338,0.29117647058823526,0.19069621134876355
+Feature,N_mod,N_tv,MWU_U,MWU_p,MWU_rank_biserial,KS_D,KS_p,Note
+PulseRate (mod vs tv),34,20,279.0,0.2784965925308338,-0.17941176470588238,0.2911764705882353,0.19069621134876355,flat excluded: no measurable pulse rate

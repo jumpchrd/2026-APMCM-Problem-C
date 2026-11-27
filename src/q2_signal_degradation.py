@@ -32,10 +32,14 @@ FILE_MAP = {
     ),
 }
 
+# Thresholds follow the values named in the problem statement:
+# 0.50 = minimum similarity for potential recognition
+# 0.60 = intermediate recognition level
+# 0.70 = more stringent, reliable recognition
 THRESHOLDS = {
     "potential_0.50": 0.50,
-    "recognition_0.65": 0.65,
-    "reliable_0.75": 0.75,
+    "recognition_0.60": 0.60,
+    "reliable_0.70": 0.70,
 }
 
 
@@ -244,12 +248,12 @@ def main() -> None:
             f_mat = combine_fidelity(mats, w_vec)
             popt, _, _, _ = fit_model(best_model, np.nanmean(f_mat, axis=0))
             d_pot = invert_model(best_model, popt, 0.50)
-            d_rel = invert_model(best_model, popt, 0.75)
+            d_rel = invert_model(best_model, popt, 0.70)
             sens_rows.append(
                 {"Analysis": "WeightScheme_0.50", "CallType": ct, "Setting": s_name, "d_eff_m": d_pot}
             )
             sens_rows.append(
-                {"Analysis": "WeightScheme_0.75", "CallType": ct, "Setting": s_name, "d_eff_m": d_rel}
+                {"Analysis": "WeightScheme_0.70", "CallType": ct, "Setting": s_name, "d_eff_m": d_rel}
             )
     sens_df = pd.DataFrame(sens_rows)
     sens_df.to_csv(TABLES_DIR / "q2_sensitivity_analysis.csv", index=False)
@@ -279,13 +283,13 @@ def main() -> None:
     plt.close(fig)
 
     # Plot B: Effective range with 95% CI
-    focus_df = range_df[range_df["Criterion"].isin(["potential_0.50", "reliable_0.75"])].copy()
+    focus_df = range_df[range_df["Criterion"].isin(["potential_0.50", "reliable_0.70"])].copy()
     fig, ax = plt.subplots(figsize=(8, 4.5))
     sns.barplot(data=focus_df, x="Criterion", y="d_eff_m", hue="CallType", palette=palette, ax=ax)
     for bar, (_, row) in zip(ax.patches, focus_df.sort_values(["CallType", "Criterion"]).iterrows()):
         pass
     # Overlay exact CI error bars
-    x_positions = {"potential_0.50": 0, "reliable_0.75": 1}
+    x_positions = {"potential_0.50": 0, "reliable_0.70": 1}
     offsets = {"flat": -0.27, "mod": 0.0, "tv": 0.27}
     for _, r in focus_df.iterrows():
         xp = x_positions[r["Criterion"]] + offsets[r["CallType"]]

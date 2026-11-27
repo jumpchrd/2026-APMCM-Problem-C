@@ -16,7 +16,7 @@ from q2_signal_degradation import (
     load_raw_dimensions,
     logistic_4pl,
 )
-from q3_playback_responses import TIER_NAMES, prepare_playback_df
+from q3_playback_responses import TIER_NAMES, fit_main_gee, predict_gee, prepare_playback_df
 
 # Ecological utility weights for the 5 response tiers (0=None .. 4=ApproachInvolved)
 UTILITY_WEIGHTS = {
@@ -49,9 +49,9 @@ def fit_q3_mnlogit(df_play: pd.DataFrame):
     mn_df["IsTv"] = (mn_df["CallType"] == "tv").astype(float)
     mn_df["CtxSearching"] = (mn_df["Context"] == "searching").astype(float)
     mn_df["CtxCommuting"] = (mn_df["Context"] == "commuting").astype(float)
-    mn_df["Dist100m"] = mn_df["Distance"] / 100.0
+    mn_df["log2Distance"] = np.log2(mn_df["Distance"].clip(lower=1))
 
-    cols = ["IsFlat", "IsMod", "IsTv", "CtxSearching", "CtxCommuting", "Dist100m", "LogNpenguins"]
+    cols = ["IsFlat", "IsMod", "IsTv", "CtxSearching", "CtxCommuting", "log2Distance", "LogNpenguins"]
     X = sm.add_constant(mn_df[cols], has_constant="add")
     y = mn_df["ResponseTier"]
     return sm.MNLogit(y, X).fit(method="bfgs", maxiter=500, disp=False), cols
@@ -66,7 +66,7 @@ def predict_tier_probs(mn_res, cols: list[str], call_type: str, context: str, di
         "IsTv": 1.0 if call_type == "tv" else 0.0,
         "CtxSearching": 1.0 if context == "searching" else 0.0,
         "CtxCommuting": 1.0 if context == "commuting" else 0.0,
-        "Dist100m": dist_m / 100.0,
+        "log2Distance": float(np.log2(max(dist_m, 1.0))),
         "LogNpenguins": np.log(max(n_penguins, 1.0)),
     }
     X_new = pd.DataFrame([row])[["const"] + cols]
@@ -90,6 +90,7 @@ def main() -> None:
     q2_params = fit_q2_fidelity_curves(data_dir)
     df_play = prepare_playback_df(data_dir)
     mn_res, mn_cols = fit_q3_mnlogit(df_play)
+    gee_res, _ = fit_main_gee(df_play)
 
     med_n = float(df_play["Npenguins"].median())
     u_vec = np.array([UTILITY_WEIGHTS[i] for i in range(5)])
@@ -105,10 +106,17 @@ def main() -> None:
             # Context-weighted behavioral utility and overall response probability
             u_beh = 0.0
             p_resp = 0.0
+            p_mn = 0.0
             for ctx in contexts:
                 probs = predict_tier_probs(mn_res, mn_cols, ct, ctx, float(d), med_n)
-                u_beh += ctx_weights[ctx] * float(np.dot(probs, u_vec))
-                p_resp += ctx_weights[ctx] * float(1.0 - probs[0])
+                p_none = float(probs[0])
+                # Composition across response tiers, conditional on responding
+                cond = probs[1:] / (1.0 - p_none) if p_none < 1.0 else np.zeros(len(u_vec) - 1)
+                # Overall response probability comes from the Problem-3 GEE
+                p_g = float(predict_gee(gee_res, ct, ctx, float(d), med_n)[0])
+                u_beh += ctx_weights[ctx] * p_g * float(np.dot(cond, u_vec[1:]))
+                p_resp += ctx_weights[ctx] * p_g
+                p_mn += ctx_weights[ctx] * (1.0 - p_none)
             e_idx = float(np.sqrt(max(f_val, 0.0) * max(u_beh, 0.0)))
             eff_rows.append(
                 {
@@ -117,22 +125,29 @@ def main() -> None:
                     "Fidelity_F": f_val,
                     "BehavioralUtility_U": u_beh,
                     "ResponseProb": p_resp,
+                    "ResponseProb_MN": p_mn,
                     "Effectiveness_E": e_idx,
                 }
             )
     eff_df = pd.DataFrame(eff_rows)
     eff_df.to_csv(TABLES_DIR / "q4_effectiveness_index.csv", index=False)
+    cons = (eff_df["ResponseProb"] - eff_df["ResponseProb_MN"]).abs()
+    pd.DataFrame([{"N": len(cons), "MeanAbsDiff": cons.mean(), "MaxAbsDiff": cons.max(),
+                   "GEE_Model": "q3 main GEE", "MN_Model": "5-tier multinomial"}]).to_csv(
+        TABLES_DIR / "q4_model_consistency.csv", index=False)
 
     # 2. Expected responding individuals & sensitivity to individual response proportion rho
     sens_rows = []
     for ct in CALL_TYPES:
         for n_grp in [4, int(med_n), 16]:
-            for rho in [0.2, 0.4, 0.6, 0.8, 1.0]:
+            for rho in [0.2, 0.4, 0.5, 0.6, 0.8, 1.0]:
                 # Evaluate at 50m, 100m, 150m (searching context)
                 for dist in [50.0, 100.0, 150.0]:
-                    probs = predict_tier_probs(mn_res, mn_cols, ct, "searching", dist, n_grp)
-                    p_trial_resp = float(1.0 - probs[0])
-                    exp_n = n_grp * rho * p_trial_resp
+                    p_trial_resp = float(predict_gee(gee_res, ct, "searching", dist, n_grp)[0])
+                    # Convert the group-level "at least one responds" probability into
+                    # an individual-level probability under homogeneity, then scale by rho.
+                    p_ind = 1.0 - (1.0 - p_trial_resp) ** (1.0 / n_grp) if p_trial_resp < 1 else 1.0
+                    exp_n = n_grp * rho * p_ind
                     sens_rows.append(
                         {
                             "CallType": ct,
@@ -152,8 +167,8 @@ def main() -> None:
     for ct in CALL_TYPES:
         for tau in [0.50, 0.60, 0.70]:
             r_eff = solve_radius(lambda d: float(logistic_4pl(np.array([d]), *q2_params[ct])[0]) - tau)
-            probs_at_r = predict_tier_probs(mn_res, mn_cols, ct, "searching", max(r_eff, 1.0), med_n)
-            p_resp_at_r = float(1.0 - probs_at_r[0])
+            p_resp_at_r = float(predict_gee(gee_res, ct, "searching", max(r_eff, 1.0), med_n)[0])
+            p_ind_at_r = 1.0 - (1.0 - p_resp_at_r) ** (1.0 / med_n) if p_resp_at_r < 1.0 else 1.0
             scen_rows.append(
                 {
                     "Scenario": "ThresholdElevation",
@@ -161,7 +176,7 @@ def main() -> None:
                     "Parameter": f"tau={tau:.2f}",
                     "EffectiveRadius_m": r_eff,
                     "RespProbAtRadius": p_resp_at_r,
-                    "ExpectedResponders_rho0.5": med_n * 0.5 * p_resp_at_r,
+                    "ExpectedResponders_rho0.5": med_n * 0.5 * p_ind_at_r,
                 }
             )
 
@@ -171,8 +186,8 @@ def main() -> None:
             r_eff = solve_radius(
                 lambda d: (1.0 - delta) * float(logistic_4pl(np.array([d]), *q2_params[ct])[0]) - 0.50
             )
-            probs_at_r = predict_tier_probs(mn_res, mn_cols, ct, "searching", max(r_eff, 1.0), med_n)
-            p_resp_at_r = float(1.0 - probs_at_r[0])
+            p_resp_at_r = float(predict_gee(gee_res, ct, "searching", max(r_eff, 1.0), med_n)[0])
+            p_ind_at_r = 1.0 - (1.0 - p_resp_at_r) ** (1.0 / med_n) if p_resp_at_r < 1.0 else 1.0
             scen_rows.append(
                 {
                     "Scenario": "CorrelationReduction",
@@ -180,9 +195,29 @@ def main() -> None:
                     "Parameter": f"drop={int(delta*100)}%",
                     "EffectiveRadius_m": r_eff,
                     "RespProbAtRadius": p_resp_at_r,
-                    "ExpectedResponders_rho0.5": med_n * 0.5 * p_resp_at_r,
+                    "ExpectedResponders_rho0.5": med_n * 0.5 * p_ind_at_r,
                 }
             )
+    # Scenario C: ABSOLUTE reduction of the correlation (+/- 0.05, 0.10, 0.15, 0.20)
+    # The problem statement is ambiguous ("5%-20% reduction"); both readings are reported.
+    for ct in CALL_TYPES:
+        for delta in [0.0, 0.05, 0.10, 0.15, 0.20]:
+            r_eff = solve_radius(
+                lambda d: float(logistic_4pl(np.array([d]), *q2_params[ct])[0]) - delta - 0.50
+            )
+            p_resp_at_r = float(predict_gee(gee_res, ct, "searching", max(r_eff, 1.0), med_n)[0])
+            p_ind_at_r = 1.0 - (1.0 - p_resp_at_r) ** (1.0 / med_n) if p_resp_at_r < 1.0 else 1.0
+            scen_rows.append(
+                {
+                    "Scenario": "CorrelationReductionAbsolute",
+                    "CallType": ct,
+                    "Parameter": f"drop={delta:.2f}",
+                    "EffectiveRadius_m": r_eff,
+                    "RespProbAtRadius": p_resp_at_r,
+                    "ExpectedResponders_rho0.5": med_n * 0.5 * p_ind_at_r,
+                }
+            )
+
     scen_df = pd.DataFrame(scen_rows)
     scen_df.to_csv(TABLES_DIR / "q4_noise_scenarios.csv", index=False)
 

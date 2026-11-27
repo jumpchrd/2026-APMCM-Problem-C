@@ -1,0 +1,13 @@
+CallType,Distance_m,AFT_Median_InitLatency_s,AFT_Init_CI_low,AFT_Init_CI_high,AFT_Init_status,AFT_Median_HeadsUpLatency_s,AFT_HeadsUp_CI_low,AFT_HeadsUp_CI_high,AFT_HeadsUp_status,AFT_Median_VocalLatency_s,AFT_Vocal_CI_low,AFT_Vocal_CI_high,AFT_Vocal_status,AFT_Median_ApproachLatency_s,AFT_Approach_CI_low,AFT_Approach_CI_high,AFT_Approach_status
+flat,50.0,8.430425044021884,2.7086204120288446,26.239212444550734,estimated,,,,not estimable (>60 s),19.339326965450947,7.357622424817081,50.83293839802012,estimated,,,,not estimable (>60 s)
+flat,100.0,17.43364238089769,5.767530149783217,52.697060747303745,estimated,,,,not estimable (>60 s),21.261445551837053,8.349456426063265,54.14113732513613,estimated,,,,not estimable (>60 s)
+flat,150.0,26.66652453841832,8.503583979788644,83.62397933015306,estimated,,,,not estimable (>60 s),22.47319569012916,8.809867266347865,57.32714344698705,estimated,,,,not estimable (>60 s)
+mod,50.0,7.396336835293948,2.2569702219393557,24.238600070726147,estimated,,,,not estimable (>60 s),24.759673705393812,14.659704836480158,41.81812995798099,estimated,,,,not estimable (>60 s)
+mod,100.0,15.295206426941876,4.4506051357926335,52.56438899990164,estimated,,,,not estimable (>60 s),27.220515755740884,15.355892147743536,48.25225853890992,estimated,,,,not estimable (>60 s)
+mod,150.0,23.395569817993312,6.321612427416167,86.58434748938238,estimated,,,,not estimable (>60 s),28.77189022136613,15.319052281999928,54.03869976232436,estimated,,,,not estimable (>60 s)
+tv,50.0,6.160852339652325,2.0574874913302854,18.44779213041956,estimated,,,,not estimable (>60 s),15.035417422723643,9.191884381177733,24.59384471136882,estimated,,,,not estimable (>60 s)
+tv,100.0,12.740294337493511,4.265988687406066,38.04864749996908,estimated,,,,not estimable (>60 s),16.52977424982105,9.241699366210595,29.56528079121901,estimated,,,,not estimable (>60 s)
+tv,150.0,19.48757259984295,6.1914543144614385,61.33704078977504,estimated,,,,not estimable (>60 s),17.471853008498268,9.050140429877167,33.730487379267466,estimated,,,,not estimable (>60 s)
+control,50.0,,,,not estimable (>60 s),,,,not estimable (>60 s),,,,not estimable (>60 s),,,,not estimable (>60 s)
+control,100.0,,,,not estimable (>60 s),,,,not estimable (>60 s),,,,not estimable (>60 s),,,,not estimable (>60 s)
+control,150.0,,,,not estimable (>60 s),,,,not estimable (>60 s),,,,not estimable (>60 s),,,,not estimable (>60 s)

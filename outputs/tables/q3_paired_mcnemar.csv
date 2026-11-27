@@ -1,0 +1,3 @@
+Analysis,N_pairs,BothRespond,CallOnly,ControlOnly,Neither,McNemar_p
+AllPairs,139,16,74,2,47,7.747704489416678e-20
+MatchedDistance,49,6,27,2,14,1.6242265701293945e-06
