@@ -727,9 +727,12 @@ hypotheses for monitoring, not as fixed setback distances.
 % =====================================================================
 \section{Validation and sensitivity summary}
 
+To verify robustness across all four problems, we evaluated out-of-sample generalisation, model calibration, residual diagnostics, and parameter sensitivity. Table~\ref{tab:validation} summarises the validation protocols and sensitivity checks across the full modelling pipeline.
+
 \begin{table}[htbp]
 \centering
 \caption{Summary of model validation.}
+\label{tab:validation}
 \small
 \begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
 \toprule
@@ -794,6 +797,8 @@ foraging habitat.
 
 \newpage
 \appendix
+\renewcommand{\thesection}{\Alph{section}}
+\setcounter{section}{0}
 \section{Code and reproducibility}
 All analyses are implemented in Python and organised as four scripts
 (\path{q1_acoustics_classification.py}, \path{q2_signal_degradation.py},
