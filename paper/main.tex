@@ -799,6 +799,9 @@ foraging habitat.
 \appendix
 \renewcommand{\thesection}{\Alph{section}}
 \setcounter{section}{0}
+% The class hard-codes \Roman{section} in the section title format, so the
+% body heading must be overridden separately from the TOC entry.
+\titleformat{\section}{\centering\normalfont\Large\bfseries}{\Alph{section}.}{.5em}{}
 \section{Code and reproducibility}
 All analyses are implemented in Python and organised as four scripts
 (\path{q1_acoustics_classification.py}, \path{q2_signal_degradation.py},
